@@ -1,0 +1,85 @@
+Event Management System
+
+--Collections: Events, Participants, Venues, Registrations, Payments:
+    db.createCollection("events");
+    db.createCollection("participants");
+    db.createCollection("venues");
+    db.createCollection("registrations");
+    db.createCollection("payments");
+
+--Insert events with details like EventID, Name, VenueID, and Date:
+    db.events.insertMany([
+        { EventID: 1, Name: "Music Concert", VenueID: 101, Date: new Date("2024-10-01"), Type: "Concert", Available: true },
+        { EventID: 2, Name: "Tech Conference", VenueID: 102, Date: new Date("2024-10-05"), Type: "Conference", Available: true },
+        { EventID: 3, Name: "Art Expo", VenueID: 103, Date: new Date("2024-11-10"), Type: "Exhibition", Available: false }
+    ]);
+
+--Query to select all participants registered for a specific event:
+    db.registrations.aggregate([
+        { $match: { EventID: 1 } },
+        {
+            $lookup: {
+            from: "participants",
+            localField: "ParticipantID",
+            foreignField: "ParticipantID",
+            as: "ParticipantDetails"
+        }
+    }
+    ]);
+
+--Update the event details or venue after confirmation:
+--Update venue:
+    db.events.updateOne(
+        { EventID: 1 },
+        { $set: { VenueID: 104 } } 
+    );
+--Update events:
+    db.events.updateOne(
+        { EventID: 1 }, 
+        { $set: { Name: "Updated Event Name", Date: new Date("2024-12-12") } }
+    );
+
+--Delete participant registrations for canceled events:
+    db.registrations.deleteMany({ EventID: 2 });
+
+-- Filter events by date or venue:
+--Filter by date
+    db.events.find({ Date: { $gte: new Date("2024-10-01"), $lte: new Date("2024-10-31") } });
+--Filter by venue
+    db.events.find({ VenueID: 101 });
+
+-- Use AND/OR to find events by type and availability:
+    db.events.find({ Type: "Conference", Available: true });
+
+--Sort events by date in ascending order:
+    db.events.find().sort({ Date: 1 });
+
+--Use aggregate functions to count the total number of participants for each event:
+    db.registrations.aggregate([
+        { $group: { _id: "$EventID", TotalParticipants: { $sum: 1 } } }
+    ]);
+
+--Group events by venue and calculate the total revenue for each event:
+    db.payments.aggregate([
+    {
+        $group: {
+        _id: "$EventID",
+        TotalRevenue: { $sum: "$amount" }
+        }
+    },
+    {
+        $lookup: {
+        from: "events",
+        localField: "_id",
+        foreignField: "EventID",
+        as: "EventDetails"
+        }
+    },
+    {
+        $group: {
+            _id: "$EventDetails.VenueID",
+            TotalRevenueByVenue: { $sum: "$TotalRevenue" }
+        }
+    }
+    ]);
+

@@ -1,0 +1,146 @@
+1.Creating Collections
+
+--Creating Employees Database:
+    db.createCollection("Employees");
+--Creating Orders Database:
+    db.createCollection("Orders");
+
+2.Inserting Data into Collections
+
+--Inserting one Data into Employees:
+    db.Employees.insertOne({
+        EmployeeID: 1,
+        FirstName: 'Alice',
+        LastName: 'Johnson',
+        DateOfBirth: new Date('1990-01-15'),
+        Department: 'HR'
+    });
+
+--Inserting Many Data into Orders
+    db.Orders.insertMany([
+        { OrderID: 1, OrderDate: new Date('2023-05-05'), CustomerID: 343, Amount: 999 },
+        { OrderID: 2, OrderDate: new Date('2023-06-12'), CustomerID: 21, Amount: 499 },
+        { OrderID: 3, OrderDate: new Date('2023-07-15'), CustomerID: 7, Amount: 199 }
+    ]);
+
+3. Selecting Data from Collections
+
+--Selecting all from Employees:
+    db.Employees.find();
+
+--Selecting all Data from Orders:
+    db.Orders.find();
+
+--Select only the FirstName and LastName from the Employees collection:
+    db.Employees.find({}, { FirstName: 1, LastName: 1, _id: 0 });
+
+--Select the OrderID and Amount from the Orders collection:
+    db.Orders.find({}, { OrderID: 1, Amount: 1, _id: 0 });
+
+4. Updating Data in a Collection
+
+--Update the Department of the employee with EmployeeID 1 to 'Finance':
+    db.Employees.updateOne({ EmployeeID: 1 }, { $set: { Department: 'Finance' } });
+
+--Update the Amount in the Orders collection where OrderID is 2 to 500.00:
+    db.Orders.updateOne({ OrderID: 2 }, { $set: { Amount: 500 } });
+
+5. Deleting Data from a collection
+
+--Delete the employee from the Employees collection where EmployeeID is 1:
+    db.Employees.deleteOne({ EmployeeID: 1 });
+
+--Delete all orders from the Orders collection where the Amount is less than 100:
+    db.Orders.deleteMany({ Amount: { $lt: 100 } });
+
+6. Filtering Data with WHERE Clause
+
+--Select all employees who work in the 'HR' department:
+    db.Employees.find({ Department: 'HR' });
+
+--Select all orders with an Amount greater than 300:
+    db.Orders.find({ Amount: { $gt: 300 } });
+
+7. Using AND / OR in Queries
+
+--Select employees who work in the 'HR' department and were born after '1990-01-01':
+    db.Employees.find({ Department: 'HR', DateOfBirth: { $gt: new Date('1990-01-01') } });
+
+--Select orders with an Amount greater than 300 and OrderDate before '2023-01-01':
+    db.Orders.find({ Amount: { $gt: 300 }, OrderDate: { $lt: new Date('2023-01-01') } });
+
+8. Sorting Results with ORDER BY
+
+--Select all employees and order the results by LastName in ascending order:
+    db.Employees.find().sort({ LastName: 1 });
+
+--Select all orders and order the results by Amount in descending order:
+    db.Orders.find().sort({ Amount: -1 });
+
+9. Using Aggregate Functions
+
+--Count the number of employees in the Employees collection:
+    db.Employees.countDocuments();
+
+--Count the number of orders placed in the Orders collection:
+    db.Orders.countDocuments();
+
+--Find the average Amount of all orders in the Orders collection:
+    db.Orders.aggregate([{ $group: { _id: null, avgAmount: { $avg: "$Amount" } } }]);
+
+--Calculate the average age of employees (assuming there’s a function to calculate age from DateOfBirth):
+    db.Employees.aggregate([
+        { $project: { age: { $subtract: [new Date(), "$DateOfBirth"] } } },
+        { $group: { _id: null, avgAge: { $avg: "$age" } } }
+    ]);
+
+10. Grouping Data with GROUP by
+
+--Count the number of employees in each Department:
+    db.Employees.aggregate([{ $group: { _id: "$Department", count: { $sum: 1 } } }]);
+
+--Calculate the total Amount of orders for each CustomerID:
+    db.Orders.aggregate([{ $group: { _id: "$CustomerID", totalAmount: { $sum: "$Amount" } } }]);
+
+11. Using HAVING Clause
+
+--Find all departments that have more than 5 employees:
+    db.Employees.aggregate([
+        { $group: { _id: "$Department", count: { $sum: 1 } } },
+        { $match: { count: { $gt: 5 } } }
+    ]);
+
+--Find all CustomerIDs with total order Amount greater than 1000:
+    db.Orders.aggregate([
+        { $group: { _id: "$CustomerID", totalAmount: { $sum: "$Amount" } } },
+        { $match: { totalAmount: { $gt: 1000 } } }
+    ])
+
+12. Joining Collections
+
+--Inner Join: Join Employees and Orders on CustomerID (assuming employees are customers) and select FirstName, LastName, and Amount:
+    db.Employees.aggregate([
+    {
+        $lookup: {
+        from: "Orders",
+        localField: "EmployeeID", 
+        foreignField: "CustomerID",
+        as: "orders"
+        }
+    },
+    { $unwind: "$orders" },
+    { $project: { FirstName: 1, LastName: 1, "orders.Amount": 1 } }
+    ]);
+
+--Left Join: Perform a left join between Employees and Orders, returning all employees and their corresponding Order Amount if available:
+    db.Employees.aggregate([
+    {
+        $lookup: {
+        from: "Orders",
+        localField: "EmployeeID",
+        foreignField: "CustomerID",
+        as: "orders"
+        }
+    },
+    { $project: { FirstName: 1, LastName: 1, orders: { $ifNull: ["$orders.Amount", null] } } }
+    ]);
